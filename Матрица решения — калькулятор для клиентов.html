@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Матрица решения — калькулятор</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #faf7f2;
+    --bg-card: #ffffff;
+    --bg-dark: #1c2230;
+    --text: #1c2230;
+    --text-muted: #6b7280;
+    --text-soft: #8b8478;
+    --accent: #b08a52;
+    --accent-soft: #ecdfc9;
+    --border: #e4ddd0;
+    --danger: #a94b3d;
+    --ok: #4a7a5e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171f;
+      --bg-card: #1c2230;
+      --bg-dark: #0e1117;
+      --text: #f4f1ea;
+      --text-muted: #b7bbc4;
+      --text-soft: #9a9488;
+      --accent: #d2ab72;
+      --accent-soft: #33302a;
+      --border: #2c3140;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171f;
+    --bg-card: #1c2230;
+    --bg-dark: #0e1117;
+    --text: #f4f1ea;
+    --text-muted: #b7bbc4;
+    --text-soft: #9a9488;
+    --accent: #d2ab72;
+    --accent-soft: #33302a;
+    --border: #2c3140;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    line-height: 1.4;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 40px 20px 160px;
+  }
+  header {
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    color: var(--accent);
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 600;
+    font-size: 40px;
+    margin: 0 0 12px;
+    line-height: 1.15;
+  }
+  .lead {
+    color: var(--text-muted);
+    font-size: 17px;
+    max-width: 620px;
+    margin: 0 0 8px;
+  }
+  .criterion {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 16px;
+  }
+  .criterion.veto {
+    border-color: var(--accent);
+  }
+  .crit-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .crit-name {
+    font-size: 19px;
+    font-weight: 600;
+  }
+  .crit-badges {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .badge {
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .badge.veto-badge {
+    background: var(--danger);
+    color: #fff;
+  }
+  .scores {
+    display: flex;
+    gap: 8px;
+    margin: 14px 0 10px;
+    flex-wrap: wrap;
+  }
+  .score-btn {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .score-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+  .score-desc {
+    font-size: 15px;
+    color: var(--text-muted);
+    min-height: 22px;
+  }
+  .score-desc.empty {
+    color: var(--text-soft);
+    font-style: normal;
+  }
+  .summary {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--bg-dark);
+    color: #f4f1ea;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .summary-inner {
+    max-width: 880px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .summary-score {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .summary-score .num {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 40px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .summary-score .of {
+    color: #b7bbc4;
+    font-size: 15px;
+  }
+  .verdict {
+    font-size: 18px;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 999px;
+  }
+  .verdict.buy { background: #2e4a37; color: #bfe6cc; }
+  .verdict.haggle { background: #3d3720; color: #e8d99a; }
+  .verdict.maybe { background: #3a3020; color: #e3c48f; }
+  .verdict.pass { background: #4a2620; color: #f0b3a4; }
+  .reset-btn {
+    background: none;
+    border: 1px solid #4a4f5c;
+    color: #cfd2da;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .progress-note {
+    font-size: 13px;
+    color: #9aa0ab;
+  }
+  footer {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-soft);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  footer .brand {
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">SVOY ADVISOR · Матрица решения</p>
+    <h1>Оцените объект по 10 критериям</h1>
+    <p class="lead">Выберите балл по каждому критерию. Итог и рекомендация считаются автоматически, внизу. Оценивайте честно: если сомневаетесь между двумя баллами — берите меньший.</p>
+  </header>
+
+  <div id="criteria"></div>
+
+  <footer>
+    <p><span class="brand">SVOY ADVISOR</span> · Евгения Никифорова · Санкт-Петербург</p>
+    <p>Telegram: @EVGENIANIKIF · en60152@gmail.com</p>
+    <p>Материал носит информационный характер и не является индивидуальной инвестиционной рекомендацией. Решения по сделкам вы принимаете самостоятельно.</p>
+  </footer>
+</div>
+
+<div class="summary">
+  <div class="summary-inner">
+    <div class="summary-score">
+      <span class="num" id="scoreNum">0</span>
+      <span class="of" id="scoreOf">из 100 · оценено 0 / 10</span>
+    </div>
+    <div class="verdict maybe" id="verdict">Оцените критерии</div>
+    <div class="progress-note" id="vetoNote"></div>
+    <button class="reset-btn" id="resetBtn" type="button">Сбросить</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var CRITERIA = [
+    { id: "price", name: "Цена входа", weight: 4, veto: false, options: [
+      [5, "Ниже медианы на 15% и больше, причина скидки понятна"],
+      [4, "Ниже на 8–15%"],
+      [3, "Ниже на 3–8%"],
+      [2, "В рынке"],
+      [1, "Выше рынка, но продавец готов обсуждать"],
+      [0, "Выше рынка, торга нет"]
+    ]},
+    { id: "liquidity", name: "Ликвидность", weight: 4, veto: true, options: [
+      [5, "Массовый сегмент, сделки идут каждую неделю, покупатель очевиден"],
+      [3, "Сегмент рабочий, выход 2–4 месяца"],
+      [1, "Узкий сегмент, выход от полугода"],
+      [0, "Сделок в сегменте нет"]
+    ]},
+    { id: "location", name: "Локация", weight: 3, veto: false, options: [
+      [5, "Пешком до метро, сложившееся окружение, планы города в плюс"],
+      [3, "Нормальная локация без выдающихся плюсов и минусов"],
+      [1, "Проблемное окружение или транспортная изоляция"],
+      [0, "Утверждённые планы, ухудшающие локацию"]
+    ]},
+    { id: "problems", name: "Проблемы объекта", weight: 3, veto: false, options: [
+      [5, "Проблемы понятные, решаемые за понятные деньги, скидка их перекрывает"],
+      [4, "Проблемы решаемые, скидка примерно равна стоимости решения"],
+      [2, "Проблем нет, но и скидки нет"],
+      [1, "Проблемы дороже скидки"],
+      [0, "Проблемы нерешаемые: несущие стены, спор о праве, самострой"]
+    ]},
+    { id: "docs", name: "Документы", weight: 4, veto: true, options: [
+      [5, "Один собственник, купля-продажа, владение более 5 лет, обременений нет"],
+      [4, "Ипотека — снимается в сделке"],
+      [3, "Долевая собственность, все взрослые, все согласны"],
+      [2, "Несовершеннолетний собственник или наследство младше 3 лет"],
+      [1, "Нужна работа с документами до сделки"],
+      [0, "Арест, судебный спор, рента, банкротство собственника"]
+    ]},
+    { id: "purpose", name: "Назначение", weight: 3, veto: true, options: [
+      [5, "Назначение прямо позволяет ваш сценарий"],
+      [3, "Позволяет, но с ограничениями (например, апартаменты вместо квартиры)"],
+      [1, "Требует перевода или согласований"],
+      [0, "Не позволяет и не переводится"]
+    ]},
+    { id: "traffic", name: "Трафик и спрос", weight: 2, veto: false, options: [
+      [5, "Устойчивый трафик, арендатор или покупатель находится за недели"],
+      [3, "Средний, находится за 1–2 месяца"],
+      [1, "Слабый, объект будет простаивать"]
+    ]},
+    { id: "concept", name: "Смена концепции", weight: 2, veto: false, options: [
+      [5, "Есть минимум два рабочих альтернативных сценария"],
+      [3, "Один альтернативный сценарий"],
+      [1, "Только один сценарий, других нет"]
+    ]},
+    { id: "value", name: "Добавленная стоимость", weight: 3, veto: false, options: [
+      [5, "Прирост 20% и выше при понятной смете"],
+      [4, "Прирост 10–20%"],
+      [2, "Прирост до 10%"],
+      [0, "Добавить нечего"]
+    ]},
+    { id: "exit", name: "Стратегия выхода", weight: 2, veto: false, options: [
+      [5, "Прописаны два выхода, оба посчитаны, оба дают плюс"],
+      [3, "Один посчитанный выход"],
+      [1, "Выход есть только в теории"],
+      [0, "Выход не продуман"]
+    ]}
+  ];
+
+  var TOTAL_WEIGHT = CRITERIA.reduce(function (s, c) { return s + c.weight; }, 0); // 30
+  var STORAGE_KEY = "svoy-advisor-matrix-v1";
+
+  var state = {};
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    if (saved && typeof saved === "object") state = saved;
+  } catch (e) { state = {}; }
+
+  var container = document.getElementById("criteria");
+
+  CRITERIA.forEach(function (crit) {
+    var card = document.createElement("div");
+    card.className = "criterion" + (crit.veto ? " veto" : "");
+
+    var top = document.createElement("div");
+    top.className = "crit-top";
+    var name = document.createElement("div");
+    name.className = "crit-name";
+    name.textContent = crit.name;
+    var badges = document.createElement("div");
+    badges.className = "crit-badges";
+    var weightBadge = document.createElement("span");
+    weightBadge.className = "badge";
+    weightBadge.textContent = "вес " + crit.weight;
+    badges.appendChild(weightBadge);
+    if (crit.veto) {
+      var vetoBadge = document.createElement("span");
+      vetoBadge.className = "badge veto-badge";
+      vetoBadge.textContent = "вето при 0";
+      badges.appendChild(vetoBadge);
+    }
+    top.appendChild(name);
+    top.appendChild(badges);
+    card.appendChild(top);
+
+    var scoresRow = document.createElement("div");
+    scoresRow.className = "scores";
+
+    var descEl = document.createElement("div");
+    descEl.className = "score-desc empty";
+    descEl.textContent = "Выберите балл";
+
+    crit.options.forEach(function (opt) {
+      var val = opt[0], desc = opt[1];
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "score-btn";
+      btn.textContent = String(val);
+      btn.addEventListener("click", function () {
+        state[crit.id] = val;
+        persist();
+        renderCard();
+        recalc();
+      });
+      scoresRow.appendChild(btn);
+    });
+
+    card.appendChild(scoresRow);
+    card.appendChild(descEl);
+    container.appendChild(card);
+
+    function renderCard() {
+      var current = state[crit.id];
+      var buttons = scoresRow.querySelectorAll(".score-btn");
+      buttons.forEach(function (b) {
+        b.classList.toggle("active", current !== undefined && Number(b.textContent) === current);
+      });
+      if (current === undefined) {
+        descEl.className = "score-desc empty";
+        descEl.textContent = "Выберите балл";
+      } else {
+        var found = crit.options.filter(function (o) { return o[0] === current; })[0];
+        descEl.className = "score-desc";
+        descEl.textContent = found ? found[1] : "";
+      }
+    }
+
+    crit._render = renderCard;
+    renderCard();
+  });
+
+  function persist() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function recalc() {
+    var answered = 0, rawSum = 0, vetoHit = false;
+    CRITERIA.forEach(function (c) {
+      var v = state[c.id];
+      if (v !== undefined) {
+        answered++;
+        rawSum += v * c.weight;
+        if (c.veto && v === 0) vetoHit = true;
+      }
+    });
+
+    var scaled = Math.round((rawSum / TOTAL_WEIGHT) * 10 * 10) / 10; // rawSum / totalWeight -> avg 0-5, *20 -> 0-100
+    // rawSum max = totalWeight*5 = 150; scale to 100 => rawSum/1.5
+    scaled = Math.round((rawSum / 1.5) * 10) / 10;
+
+    document.getElementById("scoreNum").textContent = answered === CRITERIA.length ? scaled : Math.round(scaled);
+    document.getElementById("scoreOf").textContent = "из 100 · оценено " + answered + " / " + CRITERIA.length;
+
+    var verdictEl = document.getElementById("verdict");
+    var vetoNote = document.getElementById("vetoNote");
+
+    if (answered === 0) {
+      verdictEl.className = "verdict maybe";
+      verdictEl.textContent = "Оцените критерии";
+      vetoNote.textContent = "";
+      return;
+    }
+
+    if (vetoHit) {
+      verdictEl.className = "verdict pass";
+      verdictEl.textContent = "Отказаться";
+      vetoNote.textContent = "Сработало правило вето (0 по документам, назначению или ликвидности)";
+      return;
+    }
+
+    vetoNote.textContent = answered < CRITERIA.length ? "Оценено не всё — итог предварительный" : "";
+
+    var label, cls;
+    if (scaled >= 80) { label = "Покупать"; cls = "buy"; }
+    else if (scaled >= 65) { label = "Торговаться"; cls = "haggle"; }
+    else if (scaled >= 50) { label = "Условно"; cls = "maybe"; }
+    else { label = "Отказаться"; cls = "pass"; }
+
+    verdictEl.className = "verdict " + cls;
+    verdictEl.textContent = label;
+  }
+
+  document.getElementById("resetBtn").addEventListener("click", function () {
+    state = {};
+    persist();
+    CRITERIA.forEach(function (c) { c._render(); });
+    recalc();
+  });
+
+  recalc();
+})();
+</script>
+</body>
+</html>
